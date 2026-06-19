@@ -2,35 +2,99 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Multi Course Race Calculator — June 2026</title>
+<title>Multi Course Race Calculator — Planner Beta 2.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#0d355f">
 <style>
   body{font-family:Arial,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:12px}
   h2{margin:0 0 4px 0}
+  h3{margin:0 0 8px 0;color:#003366}
   .build{font-size:14px;color:#444;margin:0 0 14px 0}
   .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
   label{display:block;margin-top:12px;font-size:18px;font-weight:800}
-  input,select{width:240px;max-width:100%;padding:12px;font-size:22px;font-weight:800;border:2px solid #333;border-radius:10px}
+  input,select{width:240px;max-width:100%;padding:12px;font-size:22px;font-weight:800;border:2px solid #333;border-radius:10px;background:#fff}
   input[type="checkbox"]{width:auto}
+  button{padding:12px 16px;font-size:18px;font-weight:900;border:2px solid #0d355f;border-radius:10px;background:#0d355f;color:#fff;cursor:pointer}
+  button.secondary{background:#fff;color:#0d355f}
   .section{margin-top:18px}
   .card{border:2px solid #0d355f;border-radius:12px;padding:12px;margin-bottom:10px;background:#f7f9fb}
+  .planner{border:3px solid #0d355f;border-radius:14px;padding:14px;margin:14px 0 18px 0;background:#eef5fb}
+  .plannerToggle{border:2px solid #0d355f;border-radius:12px;padding:10px 12px;margin:12px 0;background:#f7f9fb}
   .line1{font-size:22px;font-weight:900;color:#003366;letter-spacing:.2px}
   .line2{font-size:20px;font-weight:900;color:#000;margin-top:4px}
   .muted{font-size:14px;color:#555;font-weight:700}
+  .note{font-size:15px;color:#333;font-weight:700;margin-top:8px}
   .hidden{display:none!important}
   .footer{text-align:center;margin:22px 0 8px 0;font-size:14px;color:#555}
   @media(max-width:760px){
     .row{flex-direction:column;align-items:stretch;gap:0}
-    input,select{width:100%}
+    input,select,button{width:100%}
   }
 </style>
 </head>
 <body>
 
-<h2>Multi Course Race Calculator — June 2026</h2>
-<p class="build">Includes: Trapezoid (60/70/80), Triangle, 90° Gybe, Windward-Leeward (with optional spreader 1a).</p>
+<h2>Multi Course Race Calculator — Planner Beta 2.1</h2>
+<p class="build">Includes: optional Course Length Calculator, Trapezoid (60/70/80), Triangle, 90° Gybe, Windward-Leeward (with optional spreader 1a).</p>
+
+<div class="plannerToggle">
+  <label style="font-weight:900;margin-top:0">
+    <input type="checkbox" id="showPlanner" style="transform:scale(1.2);margin-right:8px">
+    Show course length calculator?
+  </label>
+</div>
+
+<div id="plannerBox" class="planner hidden">
+  <h3>Course Length Calculator</h3>
+  <div class="row">
+    <label>Class
+      <select id="planClass"></select>
+    </label>
+
+    <label>Wind Range
+      <select id="planWind"></select>
+    </label>
+
+    <label>Target Time (min)
+      <input id="planTarget" type="number" step="1" value="45">
+    </label>
+
+    <label>Number of Beats
+      <input id="planBeats" type="number" step="1" value="1">
+    </label>
+
+    <label>Planner Course
+      <select id="planCourse">
+        <option value="trapezoid" selected>Trapezoid</option>
+        <option value="windwardleeward">Windward-Leeward / Sausage</option>
+        <option value="triangle">Triangle</option>
+        <option value="gybe90">Triangle 90° Gybe</option>
+        <option value="sausageTriangle">Sausage-Triangle</option>
+        <option value="triangleSausage">Triangle-Sausage</option>
+      </select>
+    </label>
+
+    <label>Finish Line
+      <select id="planFinish">
+        <option value="committee" selected>Committee boat</option>
+        <option value="leeward">Leeward mark / Mark 4</option>
+      </select>
+    </label>
+
+    <label id="planReachWrap">Trapezoid Reach %
+      <input id="planReachPct" type="number" step="0.1" value="67">
+    </label>
+  </div>
+
+  <div class="row" style="margin-top:12px">
+    <button id="planApply" type="button">Apply Suggested Course</button>
+    <button id="planCalcOnly" type="button" class="secondary">Calculate Only</button>
+  </div>
+
+  <div id="plannerResults" class="section"></div>
+  <div class="note">Planner uses class speed data in minutes per nautical mile from the uploaded RYA-style speed chart. It suggests the beat/course-length input; the race officer remains in control. The mark-laying geometry below is unchanged.</div>
+</div>
 
 <div class="row">
   <label>Course type
@@ -55,7 +119,7 @@
   </label>
 
   <label>Course Length (nm)
-    <input id="courseLenNm" type="number" step="0.01" value="0.60">
+    <input id="courseLenNm" type="number" step="0.001" value="0.600">
   </label>
 </div>
 
@@ -135,15 +199,84 @@
   </label>
 
   <label id="wlPerfectWrap" class="hidden" style="font-weight:900">
-	<input type="checkbox" id="wlPerfect" checked style="transform:scale(1.2);margin-right:8px">
+    <input type="checkbox" id="wlPerfect" checked style="transform:scale(1.2);margin-right:8px">
     Perfect run (Gate4C→1a = Axis)
   </label>
 </div>
 
 <div class="section" id="results"></div>
-<div class="footer">Multi Course Race Calculator — June 2026 © Peter Keats 2026</div>
+<div class="footer">Multi Course Race Calculator — Planner Beta 2.1 © Peter Keats 2026</div>
 
 <script>
+const SPEED_DATA = {
+  "420": {
+    "5-8 Knots": {upwind:21, downwind:18, reach:13},
+    "8-12 Knots": {upwind:17, downwind:12, reach:9},
+    "12-15 Knots": {upwind:14, downwind:8.5, reach:6},
+    "15+ Knots": {upwind:13.5, downwind:7, reach:5}
+  },
+  "29er": {
+    "5-8 Knots": {upwind:20, downwind:12, reach:8},
+    "8-12 Knots": {upwind:15, downwind:7.5, reach:5},
+    "12-15 Knots": {upwind:12.5, downwind:6, reach:4},
+    "15+ Knots": {upwind:12, downwind:5.5, reach:4}
+  },
+  "FEVA": {
+    "5-8 Knots": {upwind:23, downwind:18.5, reach:16.5},
+    "8-12 Knots": {upwind:20, downwind:14, reach:11},
+    "12-15 Knots": {upwind:18, downwind:10.5, reach:6.5},
+    "15+ Knots": {upwind:19, downwind:7.5, reach:6}
+  },
+  "ILCA 4": {
+    "5-8 Knots": {upwind:22.5, downwind:18, reach:16},
+    "8-12 Knots": {upwind:19, downwind:13.5, reach:11},
+    "12-15 Knots": {upwind:18, downwind:10, reach:6.5},
+    "15+ Knots": {upwind:18.5, downwind:8, reach:6}
+  },
+  "ILCA 6": {
+    "5-8 Knots": {upwind:21, downwind:17, reach:15},
+    "8-12 Knots": {upwind:18, downwind:12.5, reach:10},
+    "12-15 Knots": {upwind:16.5, downwind:9.5, reach:6},
+    "15+ Knots": {upwind:17, downwind:7, reach:5.5}
+  },
+  "ILCA 7": {
+    "5-8 Knots": {upwind:19, downwind:16, reach:14.5},
+    "8-12 Knots": {upwind:17, downwind:12, reach:9.5},
+    "12-15 Knots": {upwind:16, downwind:9, reach:6},
+    "15+ Knots": {upwind:16.5, downwind:7, reach:5.5}
+  },
+  "MIRROR": {
+    "5-8 Knots": {upwind:26, downwind:19, reach:15},
+    "8-12 Knots": {upwind:24, downwind:13, reach:10},
+    "12-15 Knots": {upwind:23, downwind:12, reach:8},
+    "15+ Knots": {upwind:25, downwind:11, reach:9}
+  },
+  "Nacra 15": {
+    "5-8 Knots": {upwind:18, downwind:11, reach:8},
+    "8-12 Knots": {upwind:11, downwind:8.5, reach:6.5},
+    "12-15 Knots": {upwind:9.5, downwind:6.5, reach:5},
+    "15+ Knots": {upwind:10, downwind:6, reach:4.5}
+  },
+  "OPTIMIST": {
+    "5-8 Knots": {upwind:32, downwind:18, reach:20},
+    "8-12 Knots": {upwind:26, downwind:15, reach:17},
+    "12-15 Knots": {upwind:24, downwind:14, reach:15},
+    "15+ Knots": {upwind:26, downwind:13, reach:14}
+  },
+  "TOPPER": {
+    "5-8 Knots": {upwind:29, downwind:20, reach:18},
+    "8-12 Knots": {upwind:23, downwind:15, reach:13},
+    "12-15 Knots": {upwind:20, downwind:12, reach:9},
+    "15+ Knots": {upwind:20, downwind:11, reach:8.5}
+  },
+  "TOPPER 4.2": {
+    "5-8 Knots": {upwind:31, downwind:22, reach:20},
+    "8-12 Knots": {upwind:25, downwind:16.5, reach:14.5},
+    "12-15 Knots": {upwind:23, downwind:13, reach:10},
+    "15+ Knots": {upwind:23, downwind:12, reach:9.5}
+  }
+};
+
 function toRad(d){return d*Math.PI/180}
 function norm(d){return (d%360+360)%360}
 function vec(b){return {x:Math.sin(toRad(b)), y:Math.cos(toRad(b))}}
@@ -169,6 +302,10 @@ function card(a,b,A,B){
     <div class="line1">${a}→${b}: ${b1.toFixed(0)}° | ${b}→${a}: ${b2.toFixed(0)}°</div>
     <div class="line2">${Math.round(d)} m | ${(d/1852).toFixed(2)} nm</div>
   </div>`;
+}
+
+function resultCard(title, lines){
+  return `<div class="card"><div class="line1">${title}</div>${lines.map(x=>`<div class="line2">${x}</div>`).join('')}</div>`;
 }
 
 function dirsTrapezoid(angle){
@@ -220,6 +357,201 @@ function syncWL(from){
   compute();
 }
 
+function populatePlanner(){
+  const classSel=el('planClass');
+  classSel.innerHTML = Object.keys(SPEED_DATA).map(c=>`<option value="${c}">${c}</option>`).join('');
+  classSel.value='ILCA 6';
+  updateWindOptions();
+}
+
+function updateWindOptions(){
+  const c=el('planClass').value;
+  const windSel=el('planWind');
+  const old=windSel.value;
+  const winds=Object.keys(SPEED_DATA[c] || {});
+  windSel.innerHTML = winds.map(w=>`<option value="${w}">${w}</option>`).join('');
+  windSel.value = winds.includes(old) ? old : (winds.includes('8-12 Knots') ? '8-12 Knots' : winds[0]);
+  computePlanner(false);
+}
+
+function plannerCounts(course, beats, reachRatio, finish){
+  const n=Math.max(1,Math.round(beats));
+
+  if(course==='windwardleeward'){
+    return {
+      up:n,
+      down:n,
+      reachUnits:0,
+      sausageCount:n,
+      triangleCount:0,
+      note:`${n} beat${n===1?'':'s'}: ${n} sausage / windward-leeward return${n===1?'':'s'}`
+    };
+  }
+
+  if(course==='triangle'){
+    return {
+      up:n,
+      down:0,
+      reachUnits:2*n,
+      sausageCount:0,
+      triangleCount:n,
+      note:`${n} beat${n===1?'':'s'}: ${n} triangle return${n===1?'':'s'} to the leeward mark / Mark 4`
+    };
+  }
+
+  if(course==='gybe90'){
+    return {
+      up:n,
+      down:0,
+      reachUnits:2*0.71*n,
+      sausageCount:0,
+      triangleCount:n,
+      note:`${n} beat${n===1?'':'s'}: ${n} 90°-gybe triangle return${n===1?'':'s'} with reaches at 71%`
+    };
+  }
+
+  if(course==='sausageTriangle' || course==='triangleSausage'){
+    const startsWithSausage = course==='sausageTriangle';
+    const sausageCount = startsWithSausage ? Math.ceil(n/2) : Math.floor(n/2);
+    const triangleCount = startsWithSausage ? Math.floor(n/2) : Math.ceil(n/2);
+    const first = startsWithSausage ? 'Sausage' : 'Triangle';
+    const second = startsWithSausage ? 'Triangle' : 'Sausage';
+    return {
+      up:n,
+      down:sausageCount,
+      reachUnits:2*triangleCount,
+      sausageCount,
+      triangleCount,
+      note:`${n} beat${n===1?'':'s'} alternating ${first}/${second}: ${sausageCount} sausage return${sausageCount===1?'':'s'} and ${triangleCount} triangle return${triangleCount===1?'':'s'} to the leeward mark / Mark 4`
+    };
+  }
+
+  // Trapezoid / inner-loop trapezoid planner.
+  // The geometry calculator remains unchanged; this is only the time/length planner.
+  // Inner-loop trapezoid pattern:
+  //   first beat:  Start → 1 → 4
+  //   later beats: 4/3 → 1 → 2 → 3
+  // Leeward finish stops at Mark 3. Committee-boat finish adds the final lower reach 3 → 4/CB.
+  const reachCount = Math.max(0, n - 1) + (finish==='committee' ? 1 : 0);
+  return {
+    up:n,
+    down:n,
+    reachUnits:reachCount*reachRatio,
+    sausageCount:0,
+    triangleCount:0,
+    note:`${n} beat${n===1?'':'s'}, ${n} run${n===1?'':'s'}, ${reachCount} trapezoid reach${reachCount===1?'':'es'}${finish==='committee'?' including final return to CB':' finishing at the leeward mark'}`
+  };
+}
+
+function plannerFactor(course, speeds, reachRatio, beats, finish){
+  const counts=plannerCounts(course, beats, reachRatio, finish);
+  return (counts.up * speeds.upwind) + (counts.down * speeds.downwind) + (counts.reachUnits * speeds.reach);
+}
+
+function courseName(v){
+  if(v==='windwardleeward') return 'Windward-Leeward / Sausage';
+  if(v==='triangle') return 'Triangle';
+  if(v==='gybe90') return 'Triangle 90° Gybe';
+  if(v==='sausageTriangle') return 'Sausage-Triangle';
+  if(v==='triangleSausage') return 'Triangle-Sausage';
+  return 'Trapezoid';
+}
+
+function plannerApplyCourse(v){
+  if(v==='sausageTriangle' || v==='triangleSausage') return 'triangle';
+  return v;
+}
+
+function computePlanner(apply){
+  const c=el('planClass').value;
+  const w=el('planWind').value;
+  const target=Math.max(1,num('planTarget',45));
+  const beats=Math.max(1,Math.round(num('planBeats',1)));
+  const pCourse=el('planCourse').value;
+  const finish=el('planFinish').value;
+  const reachPct=num('planReachPct',67);
+  const reachRatio=reachPct/100;
+  show('planReachWrap', pCourse==='trapezoid');
+
+  const speeds=(SPEED_DATA[c]||{})[w];
+  if(!speeds){
+    el('plannerResults').innerHTML = resultCard('Planner', ['No speed data found for this class/wind range.']);
+    return;
+  }
+
+  const counts=plannerCounts(pCourse, beats, reachRatio, finish);
+  const factor=plannerFactor(pCourse, speeds, reachRatio, beats, finish);
+  const beatNm=target/factor;
+
+  const reachNm = pCourse==='trapezoid'
+    ? beatNm*reachRatio
+    : (pCourse==='gybe90' ? beatNm*0.71 : beatNm);
+
+  const totalTime=beatNm*factor;
+  const windwardTime=beatNm*speeds.upwind;
+  const runTime=beatNm*speeds.downwind;
+  const reachTime=reachNm*speeds.reach;
+  const triangleReachTime=beatNm*speeds.reach;
+  const sausageBeatTime=windwardTime + runTime;
+  const triangleBeatTime=windwardTime + (2*triangleReachTime);
+  const gybe90BeatTime=windwardTime + (2*reachTime);
+  const trapezoidReachTime=(beatNm*reachRatio)*speeds.reach;
+  const trapezoidBeatTimeLeeward=windwardTime + runTime + trapezoidReachTime;
+  const trapezoidBeatTimeCommittee=windwardTime + runTime + (2*trapezoidReachTime);
+
+  const legs=[];
+  if(pCourse==='trapezoid'){
+    legs.push(`Pattern: ${counts.note}`);
+    legs.push(`Beat ${beatNm.toFixed(3)} nm, run ${beatNm.toFixed(3)} nm, trapezoid reach ${reachNm.toFixed(3)} nm`);
+    legs.push(`Time per trapezoid sequence: ${(finish==='committee' ? trapezoidBeatTimeCommittee : trapezoidBeatTimeLeeward).toFixed(1)} min`);
+  } else if(pCourse==='windwardleeward'){
+    legs.push(`Pattern: ${counts.note}`);
+    legs.push(`Windward leg ${beatNm.toFixed(3)} nm, leeward leg ${beatNm.toFixed(3)} nm`);
+    legs.push(`Time per sausage beat: ${sausageBeatTime.toFixed(1)} min`);
+  } else if(pCourse==='triangle'){
+    legs.push(`Pattern: ${counts.note}`);
+    legs.push(`Upwind leg ${beatNm.toFixed(3)} nm, equal reach legs ${beatNm.toFixed(3)} nm`);
+    legs.push(`Time per triangle beat: ${triangleBeatTime.toFixed(1)} min`);
+  } else if(pCourse==='gybe90'){
+    legs.push(`Pattern: ${counts.note}`);
+    legs.push(`Upwind leg ${beatNm.toFixed(3)} nm, 90°-gybe reaches ${reachNm.toFixed(3)} nm`);
+    legs.push(`Time per 90°-gybe triangle beat: ${gybe90BeatTime.toFixed(1)} min`);
+  } else {
+    legs.push(`Pattern: ${counts.note}`);
+    legs.push(`Upwind/sausage leg ${beatNm.toFixed(3)} nm, triangle reach legs ${beatNm.toFixed(3)} nm`);
+    legs.push(`Time per sausage beat: ${sausageBeatTime.toFixed(1)} min`);
+    legs.push(`Time per triangle beat: ${triangleBeatTime.toFixed(1)} min`);
+  }
+
+  const finishText = finish==='committee' ? 'Committee boat' : 'Leeward mark / Mark 4';
+  const applyCourse=plannerApplyCourse(pCourse);
+  const applyNote = applyCourse===pCourse ? courseName(applyCourse) : `${courseName(applyCourse)} geometry for the mark layout`;
+  const runLabel = counts.down===1 ? 'run' : 'runs';
+  const reachLabel = Math.abs(counts.reachUnits-1)<0.0001 ? 'reach unit' : 'reach units';
+
+  el('plannerResults').innerHTML = resultCard('Suggested Course', [
+    `${c}, ${w}, ${courseName(pCourse)}, ${beats} beat${beats===1?'':'s'}, finish: ${finishText}`,
+    `Suggested Beat / Course Length input: ${beatNm.toFixed(3)} nm (${Math.round(beatNm*1852)} m)`,
+    ...legs,
+    `Timing count: ${counts.up} beat${counts.up===1?'':'s'}, ${counts.down} ${runLabel}, ${counts.reachUnits.toFixed(2).replace(/\.00$/,'')} ${reachLabel}`,
+    `Time to first windward mark: ${windwardTime.toFixed(1)} min`,
+    `Approx leg times: run ${runTime.toFixed(1)} min, reach ${reachTime.toFixed(1)} min`,
+    `Estimated race time: ${totalTime.toFixed(1)} min`,
+    `Speeds used: Upwind ${speeds.upwind}, Downwind ${speeds.downwind}, Reach ${speeds.reach} min/nm`,
+    `Apply will use: ${applyNote}`
+  ]);
+
+  if(apply){
+    el('courseType').value=applyCourse;
+    el('courseLenNm').value=beatNm.toFixed(3);
+    if(applyCourse==='trapezoid'){
+      el('reachPct').value=reachPct.toFixed(1);
+      el('reachNm').value=reachNm.toFixed(3);
+    }
+    compute();
+  }
+}
+
 function compute(){
   const t=el('courseType').value;
   const axis=num('axis',0);
@@ -268,29 +600,21 @@ function compute(){
     const u23=vec(axis+d.b23);
     const uGate=vec(axis+90);
 
+    // Gate centres are the course-geometry anchors.
+    // The physical P marks are then offset from the centres by half the gate width.
     const gate4C = add(pMid, scale(uA, off));
     const p4P = add(gate4C, scale(uGate, gw/2));
 
-    const p1 = add(p4P, scale(u41, lenM));
+    const p1 = add(gate4C, scale(u41, lenM));
     const p2 = add(p1, scale(u12, rM));
-
-    /*
-      Corrected trapezoid geometry:
-      3P is the actual sailed mark at the end of the run from Mark 2.
-      This keeps:
-      1→2 = reach
-      2→3P = run
-      3P→4P = reach
-    */
-    const p3P = add(p2, scale(u23, lenM));
-    const gate3C = add(p3P, scale(uGate, -g3w/2));
+    const gate3C = add(p2, scale(u23, lenM));
+    const p3P = add(gate3C, scale(uGate, g3w/2));
 
     html += `<div class="section"><h3>CB Reference (Trapezoid)</h3>
       ${card("CB","4P",pCB,p4P)}
       ${card("CB","1",pCB,p1)}
       ${card("CB","2",pCB,p2)}
       ${card("CB","3P",pCB,p3P)}
-      ${g3w>0 ? card("CB","Gate 3 Centre",pCB,gate3C) : ""}
     </div>`;
 
     if(hybOn){
@@ -400,13 +724,22 @@ function compute(){
 [
   'courseType','axis','lineLen','gateOff',
   'trapAngle','gate4W','gate3W','noGate4',
-  'wlGate4W','wlGateOff','wlAng','wlNoGate4'
+  'wlGate4W','wlGateOff','wlAng','wlNoGate4','showPlanner'
 ].forEach(id=>{
   const e=el(id);
   if(!e) return;
   e.addEventListener('input', compute);
   e.addEventListener('change', compute);
 });
+
+['planTarget','planBeats','planCourse','planFinish','planReachPct'].forEach(id=>{
+  el(id).addEventListener('input', ()=>computePlanner(false));
+  el(id).addEventListener('change', ()=>computePlanner(false));
+});
+el('planClass').addEventListener('change', updateWindOptions);
+el('planWind').addEventListener('change', ()=>computePlanner(false));
+el('planApply').addEventListener('click', ()=>computePlanner(true));
+el('planCalcOnly').addEventListener('click', ()=>computePlanner(false));
 
 el('courseLenNm').addEventListener('input', ()=>{
   if(el('courseType').value==='trapezoid') syncReachFromPct();
@@ -430,7 +763,15 @@ el('wlPerfect').addEventListener('change', compute);
 el('wlDistM').addEventListener('input', ()=>syncWL('m'));
 el('wlDistNm').addEventListener('input', ()=>syncWL('nm'));
 
+el('showPlanner').addEventListener('change', ()=>{
+  show('plannerBox', el('showPlanner').checked);
+  if(el('showPlanner').checked) computePlanner(false);
+});
+
+
+populatePlanner();
 syncReachFromPct();
+computePlanner(false);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
