@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Multi Course Race Calculator — Planner Beta 2.1</title>
+<title>Multi Course Race Calculator — Planner Beta 2.2</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#0d355f">
@@ -35,7 +35,7 @@
 </head>
 <body>
 
-<h2>Multi Course Race Calculator — Planner Beta 2.1</h2>
+<h2>Multi Course Race Calculator — Planner Beta 2.2</h2>
 <p class="build">Includes: optional Course Length Calculator, Trapezoid (60/70/80), Triangle, 90° Gybe, Windward-Leeward (with optional spreader 1a).</p>
 
 <div class="plannerToggle">
@@ -70,8 +70,10 @@
         <option value="windwardleeward">Windward-Leeward / Sausage</option>
         <option value="triangle">Triangle</option>
         <option value="gybe90">Triangle 90° Gybe</option>
-        <option value="sausageTriangle">Sausage-Triangle</option>
-        <option value="triangleSausage">Triangle-Sausage</option>
+        <option value="sausageTriangleEqual">Sausage-Triangle (equal legs)</option>
+        <option value="triangleSausageEqual">Triangle-Sausage (equal legs)</option>
+        <option value="sausageTriangleGybe90">Sausage-Triangle (90° gybe)</option>
+        <option value="triangleSausageGybe90">Triangle-Sausage (90° gybe)</option>
       </select>
     </label>
 
@@ -205,7 +207,7 @@
 </div>
 
 <div class="section" id="results"></div>
-<div class="footer">Multi Course Race Calculator — Planner Beta 2.1 © Peter Keats 2026</div>
+<div class="footer">Multi Course Race Calculator — Planner Beta 2.2 © Peter Keats 2026</div>
 
 <script>
 const SPEED_DATA = {
@@ -384,6 +386,7 @@ function plannerCounts(course, beats, reachRatio, finish){
       reachUnits:0,
       sausageCount:n,
       triangleCount:0,
+      triangleReachRatio:1,
       note:`${n} beat${n===1?'':'s'}: ${n} sausage / windward-leeward return${n===1?'':'s'}`
     };
   }
@@ -395,7 +398,8 @@ function plannerCounts(course, beats, reachRatio, finish){
       reachUnits:2*n,
       sausageCount:0,
       triangleCount:n,
-      note:`${n} beat${n===1?'':'s'}: ${n} triangle return${n===1?'':'s'} to the leeward mark / Mark 4`
+      triangleReachRatio:1,
+      note:`${n} beat${n===1?'':'s'}: ${n} equal-leg triangle return${n===1?'':'s'} to the leeward mark / Mark 4`
     };
   }
 
@@ -406,23 +410,28 @@ function plannerCounts(course, beats, reachRatio, finish){
       reachUnits:2*0.71*n,
       sausageCount:0,
       triangleCount:n,
+      triangleReachRatio:0.71,
       note:`${n} beat${n===1?'':'s'}: ${n} 90°-gybe triangle return${n===1?'':'s'} with reaches at 71%`
     };
   }
 
-  if(course==='sausageTriangle' || course==='triangleSausage'){
-    const startsWithSausage = course==='sausageTriangle';
+  if(course==='sausageTriangleEqual' || course==='triangleSausageEqual' ||
+     course==='sausageTriangleGybe90' || course==='triangleSausageGybe90'){
+    const startsWithSausage = course.startsWith('sausageTriangle');
+    const isGybe90 = course.endsWith('Gybe90');
+    const triangleReachRatio = isGybe90 ? 0.71 : 1;
     const sausageCount = startsWithSausage ? Math.ceil(n/2) : Math.floor(n/2);
     const triangleCount = startsWithSausage ? Math.floor(n/2) : Math.ceil(n/2);
-    const first = startsWithSausage ? 'Sausage' : 'Triangle';
-    const second = startsWithSausage ? 'Triangle' : 'Sausage';
+    const first = startsWithSausage ? 'Sausage' : (isGybe90 ? '90° gybe triangle' : 'Equal-leg triangle');
+    const second = startsWithSausage ? (isGybe90 ? '90° gybe triangle' : 'Equal-leg triangle') : 'Sausage';
     return {
       up:n,
       down:sausageCount,
-      reachUnits:2*triangleCount,
+      reachUnits:2*triangleReachRatio*triangleCount,
       sausageCount,
       triangleCount,
-      note:`${n} beat${n===1?'':'s'} alternating ${first}/${second}: ${sausageCount} sausage return${sausageCount===1?'':'s'} and ${triangleCount} triangle return${triangleCount===1?'':'s'} to the leeward mark / Mark 4`
+      triangleReachRatio,
+      note:`${n} beat${n===1?'':'s'} alternating ${first}/${second}: ${sausageCount} sausage return${sausageCount===1?'':'s'} and ${triangleCount} ${isGybe90?'90°-gybe ':'equal-leg '}triangle return${triangleCount===1?'':'s'} to the leeward mark / Mark 4`
     };
   }
 
@@ -439,6 +448,7 @@ function plannerCounts(course, beats, reachRatio, finish){
     reachUnits:reachCount*reachRatio,
     sausageCount:0,
     triangleCount:0,
+    triangleReachRatio:1,
     note:`${n} beat${n===1?'':'s'}, ${n} run${n===1?'':'s'}, ${reachCount} trapezoid reach${reachCount===1?'':'es'}${finish==='committee'?' including final return to CB':' finishing at the leeward mark'}`
   };
 }
@@ -450,16 +460,28 @@ function plannerFactor(course, speeds, reachRatio, beats, finish){
 
 function courseName(v){
   if(v==='windwardleeward') return 'Windward-Leeward / Sausage';
-  if(v==='triangle') return 'Triangle';
+  if(v==='triangle') return 'Triangle equal legs';
   if(v==='gybe90') return 'Triangle 90° Gybe';
-  if(v==='sausageTriangle') return 'Sausage-Triangle';
-  if(v==='triangleSausage') return 'Triangle-Sausage';
+  if(v==='sausageTriangleEqual') return 'Sausage-Triangle equal legs';
+  if(v==='triangleSausageEqual') return 'Triangle-Sausage equal legs';
+  if(v==='sausageTriangleGybe90') return 'Sausage-Triangle 90° Gybe';
+  if(v==='triangleSausageGybe90') return 'Triangle-Sausage 90° Gybe';
   return 'Trapezoid';
 }
 
 function plannerApplyCourse(v){
-  if(v==='sausageTriangle' || v==='triangleSausage') return 'triangle';
+  if(v==='sausageTriangleEqual' || v==='triangleSausageEqual') return 'triangle';
+  if(v==='sausageTriangleGybe90' || v==='triangleSausageGybe90') return 'gybe90';
   return v;
+}
+
+function isMixedTriangleCourse(v){
+  return v==='sausageTriangleEqual' || v==='triangleSausageEqual' ||
+         v==='sausageTriangleGybe90' || v==='triangleSausageGybe90';
+}
+
+function isGybe90PlannerCourse(v){
+  return v==='gybe90' || v==='sausageTriangleGybe90' || v==='triangleSausageGybe90';
 }
 
 function computePlanner(apply){
@@ -485,13 +507,13 @@ function computePlanner(apply){
 
   const reachNm = pCourse==='trapezoid'
     ? beatNm*reachRatio
-    : (pCourse==='gybe90' ? beatNm*0.71 : beatNm);
+    : (isGybe90PlannerCourse(pCourse) ? beatNm*0.71 : beatNm);
 
   const totalTime=beatNm*factor;
   const windwardTime=beatNm*speeds.upwind;
   const runTime=beatNm*speeds.downwind;
   const reachTime=reachNm*speeds.reach;
-  const triangleReachTime=beatNm*speeds.reach;
+  const triangleReachTime=reachNm*speeds.reach;
   const sausageBeatTime=windwardTime + runTime;
   const triangleBeatTime=windwardTime + (2*triangleReachTime);
   const gybe90BeatTime=windwardTime + (2*reachTime);
@@ -518,9 +540,9 @@ function computePlanner(apply){
     legs.push(`Time per 90°-gybe triangle beat: ${gybe90BeatTime.toFixed(1)} min`);
   } else {
     legs.push(`Pattern: ${counts.note}`);
-    legs.push(`Upwind/sausage leg ${beatNm.toFixed(3)} nm, triangle reach legs ${beatNm.toFixed(3)} nm`);
+    legs.push(`Upwind/sausage leg ${beatNm.toFixed(3)} nm, triangle reach legs ${reachNm.toFixed(3)} nm`);
     legs.push(`Time per sausage beat: ${sausageBeatTime.toFixed(1)} min`);
-    legs.push(`Time per triangle beat: ${triangleBeatTime.toFixed(1)} min`);
+    legs.push(`Time per ${isGybe90PlannerCourse(pCourse) ? '90°-gybe triangle' : 'equal-leg triangle'} beat: ${triangleBeatTime.toFixed(1)} min`);
   }
 
   const finishText = finish==='committee' ? 'Committee boat' : 'Leeward mark / Mark 4';
